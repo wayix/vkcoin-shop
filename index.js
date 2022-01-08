@@ -31,9 +31,9 @@ const on_message = async(context) => {
 		const textCommand = messagePayload && messagePayload.command ? messagePayload.command : text;
 		
 		if(
-			(typeof com[typeCommand] == "object" && !Array.isArray(com[typeCommand]) && com[typeCommand].test(textCommand))
-			|| (new RegExp(`^\\s*(${com[typeCommand].join('|')})`, "i")).test(textCommand)
-			) {
+			(typeof com[typeCommand] == "object" && !Array.isArray(com[typeCommand]) && com[typeCommand].test(textCommand)) || 
+			(new RegExp(`^\\s*(${com[typeCommand].join('|')})`, "i")).test(textCommand)
+		) {
 			command = { cmd: com, type: typeCommand, text: textCommand, params: textCommand.split(typeCommand === 'button' ? '_' : ' ').splice(1) };
 			break;
 		}
@@ -77,7 +77,4 @@ const on_message = async(context) => {
 
 bot.updates.on('message_new', on_message);
 
-process.on('SIGINT', () =>{
-	console.log('Работа бота завершена');
-	process.exit();
-});
+console.log('Бот успешно запущен!')
