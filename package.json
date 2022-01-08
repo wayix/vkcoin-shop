@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "mongoose": "^6.1.5",
+    "node-qiwi-promise-api": "^0.0.2",
+    "node-vkcoinapi": "^1.8.0",
+    "vk-io": "^4.4.0",
+    "vk-io-question": "^3.1.1"
+  },
+  "name": "vkcoin-shop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wayix/vkcoin-shop.git"
+  },
+  "author": "wayix",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wayix/vkcoin-shop/issues"
+  },
+  "homepage": "https://github.com/wayix/vkcoin-shop#readme",
+  "description": ""
+}
