@@ -6,8 +6,8 @@ const { qiwi: { timeCheck, comment } } = require('../libs/config.js')
 const User = require('../models/users.js');
 const Payment = require('../models/payments.js');
 
-const { PrivateKeyboard } = require('./keyboard.js');
-const { utils: { random } } = require('./functions.js');
+const { privateKeyboard } = require('./keyboard.js');
+const { utils } = require('./functions.js');
 
 const { course } = require('../libs/exchangeRates.js')
 
@@ -27,19 +27,17 @@ vkcoin.updates.onTransfer(async (event) => {
         await bot.api.messages.send({
             peer_id: user.uid,
             message: 'Для продажи коинов нужно указать свой кошелек.',
-            keyboard: PrivateKeyboard(user),
-            random_id: random(-2e9, 2e9) // new Date().getTime()
+            keyboard: privateKeyboard(user),
+            random_id: utils.random.integer(-2e9, 2e9) // new Date().getTime()
         })
     }
 
     try {
-        // Отправка рублей
-        // {
-        //     amount: rubles,
-        //     comment: '',
-        //     account: '+' + user.qiwi,
-        // }
-
+        await qiwi.toWallet({
+            amount: rubles,
+            account: '+' + user.qiwi,
+            comment
+        })
         await bot.api.messages.send({
             peer_id: user.uid,
             message: [
@@ -47,13 +45,21 @@ vkcoin.updates.onTransfer(async (event) => {
                 `Сумма продажи: ${utils.split(amount)} VKC\n`,
                 '🍀 Спасибо за продажу'
             ].join('\n'),
-            keyboard: PrivateKeyboard(user),
-            random_id: random(-2e9, 2e9)
+            keyboard: privateKeyboard(user),
+            random_id: utils.random.integer(-2e9, 2e9)
         })
     }
 
     catch (e) {
-        // Обрабатываем ошибки
+        await bot.api.messages.send({
+            peer_id: user.uid,
+            message: [
+                'При обработке произошла ошибка.',
+                `Проверьте баланс Qiwi-кошелька на поступление  ${rubles} ₽.`
+            ].join('\n'),
+            keyboard: privateKeyboard(user),
+            random_id: utils.random.integer(-2e9, 2e9)
+        })
     }
 })
 
@@ -65,34 +71,49 @@ setInterval(async() =>{
         operation: 'IN',
         sources: ['QW_RUB']
     });
+    
 
     response.map(async(operation) => {
         if(!operation.comment || isNaN(operation.comment)) return;
-
-        const payment = await Payment.findOne({ txnid: operation.txnId }, { txnid: 1 }).lean();
+        const payment = await Payment.findOne({ txnId: operation.txnId }, { txnId: 1 }).lean();
         if(payment) return;
 
         const user = await User.findOne({ uid: operation.comment }, { uid: 1 }).lean();
         if(!user) return;
 
-        const amount = (operation.sum.amount / course.buy * 1e6).toFixed(2);
+        const amount = operation.sum.amount / course.buy * 1e6;
         try {
-            // Отправка коинов
-    
+            await vkcoin.api.sendPayment(user.uid, amount * 1e3, true);
             await bot.api.messages.send({
                 peer_id: user.uid,
                 message: [
-                    `Мы нашли ваш платеж: ${utils.split(operation.sum.amount)} ₽`,
-                    `Мы отправили вам: ${utils.split(amount)} VKC`,
+                    `Мы получили ваш платеж: ${utils.split(operation.sum.amount)} ₽`,
+                    `Мы отправили вам: ${utils.split(amount)} VKC\n`,
                     '🍀 Спасибо за покупку'
                 ].join('\n'),
-                keyboard: PrivateKeyboard(user),
-                random_id: random(-2e9, 2e9)
+                keyboard: privateKeyboard(user),
+                random_id: utils.random.integer(-2e9, 2e9)
             })
         }
     
         catch (e) {
-            // Обрабатываем ошибки
+            await bot.api.messages.send({
+                peer_id: user.uid,
+                message: [
+                    `Мы получили ваш платеж: ${utils.split(operation.sum.amount)} ₽`,
+                    'Но при обработке произошла ошибка.',
+                    'Проверьте баланс VKC на поступление монет.'
+                ].join('\n'),
+                keyboard: privateKeyboard(user),
+                random_id: utils.random.integer(-2e9, 2e9)
+            })
+        }
+
+        finally {
+            await Payment.create({
+                txnId: operation.txnId,
+                amount: operation.sum.amount
+            })
         }
     })
 

@@ -8,7 +8,6 @@ const schema = new Schema({
 	name: { type: String, required: true },
 	
 	qiwi: { type: String, default: '' },
-	reposts: [{ type: Number }],
 
 	isAdmin: { type: Boolean, required: true, default: false },
 	isMessages: { type: Boolean, required: true, default: true },

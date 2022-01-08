@@ -1,6 +1,6 @@
 const { Keyboard } = require('vk-io')
 
-function PrivateKeyboard(user) {
+function privateKeyboard(user) {
 	const buttons = Keyboard.builder()
 	.textButton({
 		label: 'Купить'
@@ -41,10 +41,28 @@ function redirectKeyboard(label, url) {
 }
 
 const cancelKeyboard = Keyboard.builder()
-.textButton({
-	label: 'Отменить'
-})
+	.textButton({
+		label: 'Отменить'
+	})
+
+const adminKeyboard = Keyboard.builder()
+	.textButton({
+		label: 'Курс продажи',
+		payload: {
+			command: 'settings_course_buy'
+		}
+	})
+	.textButton({
+		label: 'Курс покупки',
+		payload: {
+			command: 'settings_course_sell'
+		}
+	})
+	.row()
+	.textButton({
+		label: 'Меню',
+	})
 
 module.exports = {
-	PrivateKeyboard, redirectKeyboard, cancelKeyboard
+	privateKeyboard, redirectKeyboard, cancelKeyboard, adminKeyboard
 }
