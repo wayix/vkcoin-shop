@@ -9,8 +9,8 @@ const schema = new Schema({
 	
 	qiwi: { type: String, default: '' },
 
-	isAdmin: { type: Boolean, required: true, default: false },
-	isMessages: { type: Boolean, required: true, default: true },
+	isAdmin: { type: Boolean, default: false },
+	isMessages: { type: Boolean, default: true },
 	
 	registerDate: { type: Date, default: Date.now }
 });
@@ -19,5 +19,14 @@ schema.index(
     {uid: 1}, {unique: true, dropDups: true}
 );
 
-const Users = model('Accounts', schema);
-module.exports = Users;
+schema.statics = {
+	updateItem: async function(uid, params) {
+        const User = this;
+        return await User.updateOne(
+            { uid: uid },
+            {$set: params}
+        );
+    },
+}
+
+module.exports = model('Accounts', schema);;

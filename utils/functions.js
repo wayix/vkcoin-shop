@@ -4,7 +4,7 @@ const config = require('../libs/config.js');
 
 const functions = {
     getUser: async function(id) {
-        let user = await User.findOne({ uid: id }, { uid: 1, isAdmin: 1 }).lean()
+        let user = await User.findOne({ uid: id }).lean()
         const { 0: userInfo } = await bot.api.users.get({ user_ids: id })
 		
         if(!user) {
@@ -20,6 +20,49 @@ const functions = {
         return user;
 	}
 };
+
+functions.formate = {
+	attachments: (ctx) => {
+		if(ctx.attachments) {
+			let url = [];
+			for(const attachment of ctx.attachments) {
+				url.push(
+					attachment.type + attachment.ownerId + '_' + attachment.id + '_' + attachment.accessKey
+				)
+			}
+	
+			return url.join(',')
+		}
+	
+		return ctx.text;
+	},
+
+	seconds:  (timeInSeconds) => {
+		const zeropad = function(number) {
+			return (number <= 9) ? `0${number}`: number;
+		}
+	  
+		const hours = Math.floor(timeInSeconds / 3600)
+		const minutes = Math.floor((timeInSeconds - (hours * 3600)) / 60) % 60;
+		const seconds = timeInSeconds % 60;
+	  
+		return `${zeropad(hours)}:${zeropad(minutes)}:${zeropad(seconds)}`;
+	},
+
+	bytes: (bytes, decimals = 2) => {
+		if (bytes === 0) return '0 Bytes';
+
+		const k = 1024;
+		const dm = decimals < 0 ? 0 : decimals;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+	
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+	
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+	}
+}
+
+
 
 functions.utils = {
 	random: {

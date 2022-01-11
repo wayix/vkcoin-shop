@@ -1,5 +1,7 @@
 const { Keyboard } = require('vk-io')
 
+// ========================= function 
+
 function privateKeyboard(user) {
 	const buttons = Keyboard.builder()
 	.textButton({
@@ -13,6 +15,9 @@ function privateKeyboard(user) {
 	.textButton({
 		label: 'Информация'
 	})
+	.textButton({
+		label: 'Профиль'
+	})
 	
 
 	if(user.isAdmin) {
@@ -24,6 +29,20 @@ function privateKeyboard(user) {
 	
 	return buttons;
 }
+
+function profileKeyboard(user) {
+	const buttons = Keyboard.builder()
+
+	.textButton({
+		label: user.qiwi === '' 
+		? 'Изменить номер'
+		: 'Указать номер' // а мне так красивее 
+	})
+	.inline()
+
+	return buttons;
+}
+
 
 function redirectKeyboard(label, url) {
 	const buttons = Keyboard.builder()
@@ -39,6 +58,8 @@ function redirectKeyboard(label, url) {
 
 	return buttons
 }
+
+// ========================= нету их, выше смотри 
 
 const cancelKeyboard = Keyboard.builder()
 	.textButton({
@@ -59,10 +80,25 @@ const adminKeyboard = Keyboard.builder()
 		}
 	})
 	.row()
+
+	.textButton({
+		label: 'Рассылка',
+		payload: {
+			command: 'settings_bulkMessaging'
+		}
+	})
+	.textButton({
+		label: 'DEBUG',
+		payload: {
+			command: 'settings_debug'
+		}
+	})
+	.row()
+
 	.textButton({
 		label: 'Меню',
 	})
 
 module.exports = {
-	privateKeyboard, redirectKeyboard, cancelKeyboard, adminKeyboard
+	privateKeyboard, redirectKeyboard, profileKeyboard, cancelKeyboard, adminKeyboard
 }
