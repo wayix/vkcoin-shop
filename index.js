@@ -77,4 +77,4 @@ const on_message = async(context) => {
 
 bot.updates.on('message_new', on_message);
 
-console.log('Бот успешно запущен!')
+console.log('Бот успешно запущен!\nDEV: https://vk.com/id274969784')
