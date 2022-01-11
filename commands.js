@@ -1,3 +1,4 @@
+const chunk = require('chunk')
 
 const bot = require('./libs/vk.js');
 const vkcoin = require('./libs/vkcoin.js');
@@ -8,8 +9,12 @@ const { qiwi: { phone } } = require('./libs/config.js');
 const User = require('./models/users.js');
 const Payment = require('./models/payments.js');
 
-const { privateKeyboard, redirectKeyboard, cancelKeyboard, adminKeyboard } = require('./utils/keyboard.js');
-const { utils } = require('./utils/functions.js');
+const { 
+    privateKeyboard, redirectKeyboard, profileKeyboard, 
+    cancelKeyboard, adminKeyboard
+} = require('./utils/keyboard.js');
+const { formate, utils } = require('./utils/functions.js');
+const debug = require('./utils/debug.js');
 
 module.exports = [	
     {
@@ -101,6 +106,45 @@ module.exports = [
     },
 
     {
+        tag: ['профиль'],
+        button: ['профиль'],
+
+        type: 'TYPE_PRIVATE',
+
+        async execute(context, { thisUser }) {
+            await context.send(
+                'Ваш профиль:\n' + 
+                `ID: ${thisUser.uid}\n` +
+                `Qiwi-кошелек: ${thisUser.qiwi === '' ? 'Не указан' : thisUser.qiwi}\n\n` +
+                `Дата регистрации: ${thisUser.registerDate}`,
+                { keyboard: profileKeyboard(thisUser) }
+            )
+        }
+    },
+
+    {
+        tag: ['изменить номер', 'указать номер'],
+        button: ['негры пидарасы'],
+        
+        type: 'TYPE_PRIVATE',
+        
+        async execute(context, { thisUser }) {
+            let { text: phone } = await context.question('Введите ваш актуальный номер Qiwi-кошелька', { keyboard: cancelKeyboard });
+
+            phone = phone.match(/\d+/g).join(''); // tel-formater(phone); || я в ахуе 
+            if(!phone || isNaN(phone)) return context.send('Для ввода актуального номера нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });            
+
+            // await User.updateItem(thisUser.uid, { phone });
+            // await context.send('Номер успешно обновлен.');
+
+            await Promise.all([
+                User.updateItem(thisUser.uid, { qiwi: Number(phone) }),
+                context.send('Номер успешно обновлен.', { keyboard: privateKeyboard(thisUser) }) // а вдруг нет?
+            ]);
+        }
+    },
+
+    {
         tag: ['информация'],
         button: ['information'],
         
@@ -144,7 +188,7 @@ module.exports = [
         async execute(context, { thisUser }) {
             if(!thisUser.isAdmin) return;
 
-            await context.send('Панель', { 
+            await context.send('Панель:', { 
                 keyboard: adminKeyboard
             })
         }
@@ -174,6 +218,62 @@ module.exports = [
                     'Курс успешно изменен',
                     { keyboard: adminKeyboard }
                 )
+            }
+
+            else if(args[1] === 'bulkMessaging') {
+                const { text: message } = await context.question('Отправь сообщение которое хочешь разослать всем', { keyboard: cancelKeyboard });
+                if(message === 'Отменить') return context.send('Панель:', { keyboard: adminKeyboard });
+
+                let attachments = await context.question('Отправь вложения которые хочешь прикрепить')
+                if(attachments.text === 'Отменить') return context.send('Панель:', { keyboard: adminKeyboard });
+
+                attachments = formate.attachments(attachments);
+
+                process.nextTick(async () => {
+                    const startTime = new Date().getTime();
+                    const users = await User.find({ isMessages: { $eq: true } }, { uid: 1 }).lean();
+                    const peerIds = users
+                    .map(item => (
+                      item.uid
+                    )); // вор получается?
+                    
+                    await context.send(
+                        'Юзеры успешно собраны\n\n' +
+                        `Юзеров: ${peerIds.length}\n` + 
+                        `Времени потрачено: ${formate.seconds((new Date().getTime() - startTime) / 1000)}`,
+                        { keyboard: adminKeyboard }
+                    );
+                    let sentToUsers = 0;
+
+                    for (const userIds of chunk(peerIds, 50)) {
+                        try {
+                            await bot.api.messages.send({
+                                user_ids: userIds.join(','),
+                                message: message,
+                                attachment: attachments,
+                                random_id: utils.random.integer(-2e9, 2e9)
+                            })
+                          sentToUsers += userIds.length;
+                        } 
+                        
+                        catch (error) {
+                            console.log('[ Рассылка | Ошибка ] \n' + error.message);
+                        }
+                    }
+
+                    const endTime = (new Date().getTime() - startTime) / 1000;
+
+                    await context.send(
+                        'Рассылка обконченая с ног до головы\n\n' +
+                        `Потрачено времени: ${formate.seconds(endTime)}\n` + 
+                        `Отправлено сообщений: ${sentToUsers}`
+                    )
+                })
+            }
+
+            else if(args[1] === 'debug') {
+                const getTextDebug = await debug();
+                await context.send(getTextDebug)
             }
         }
     }
