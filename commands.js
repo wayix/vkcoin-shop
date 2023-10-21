@@ -24,7 +24,7 @@ module.exports = [
        type: 'TYPE_PRIVATE',
        
        async execute(context, { thisUser }) {
-           await context.send('Добро пожаловать! 👋', { 
+           return await context.send('Добро пожаловать! 👋', { 
                keyboard: privateKeyboard(thisUser)
            })
        }
@@ -45,16 +45,16 @@ module.exports = [
                 { keyboard: cancelKeyboard }
             );
 
-            if(!amount || isNaN(amount)) return context.send('Для ввода суммы покупки нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });
+            if(!amount || isNaN(amount)) return await context.send('Для ввода суммы покупки нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });
 
-            else if(amount > vkcoinBalance) return context.send('Данного количества коинов у нас нет :(', { keyboard: privateKeyboard(thisUser) });
+            else if(amount > vkcoinBalance) return await context.send('Данного количества коинов у нас нет :(', { keyboard: privateKeyboard(thisUser) });
             
             const rubles = (+amount / 1e6 * exchangeRates.course.buy).toFixed(2);
             const shortUrl = (await bot.api.utils.getShortLink({ 
                 url: `https://qiwi.com/payment/form/99?currency=643&extra[%27account%27]=${phone}&amountInteger=${rubles.toString().split('.')[0]}&amountFraction=00&extra[%27comment%27]comment=${context.senderId}&blocked[0]=comment&blocked[1]=account`
             })).short_url;
 
-            await context.send(
+            return await context.send(
                 'Осталось только оплатить!\n\n' +
                 `Сумма к оплате: ${rubles} ₽\n` + 
                 `Оплатить: ${shortUrl}`,
@@ -82,19 +82,19 @@ module.exports = [
                 { keyboard: cancelKeyboard }
             );
             
-            if(!amount || isNaN(amount)) return context.send('Для ввода суммы покупки нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });
+            if(!amount || isNaN(amount)) return await context.send('Для ввода суммы покупки нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });
             
             const rubles = (amount / 1e6 * exchangeRates.course.sell * 0.97).toFixed(2);
 
-            if(rubles > qiwiBalance) return context.send('На данный момент мы не можем купить такое количество коинов :(', { keyboard: privateKeyboard(thisUser) });
-            else if(rubles < 1) return context.send('Минимальная сумма продажи 1 ₽', { keyboard: privateKeyboard(thisUser) });
+            if(rubles > qiwiBalance) return await context.send('На данный момент мы не можем купить такое количество коинов :(', { keyboard: privateKeyboard(thisUser) });
+            else if(rubles < 1) return await context.send('Минимальная сумма продажи 1 ₽', { keyboard: privateKeyboard(thisUser) });
 
             const url = await vkcoin.api.getLink(amount * 1000, true);
             const { short_url: shortUrl  } = await bot.api.utils.getShortLink({ 
                 url
             });
 
-            await context.send(
+            return await context.send(
                 'Осталось только перевести коины!\n\n' +
                 `Вам будет отправлено: ${utils.split(rubles)} ₽\n` +
                 `Оплатить: ${shortUrl}`,
@@ -112,7 +112,7 @@ module.exports = [
         type: 'TYPE_PRIVATE',
 
         async execute(context, { thisUser }) {
-            await context.send(
+            return await context.send(
                 'Ваш профиль:\n' + 
                 `ID: ${thisUser.uid}\n` +
                 `Qiwi-кошелек: ${thisUser.qiwi === '' ? 'Не указан' : thisUser.qiwi}\n\n` +
@@ -132,12 +132,9 @@ module.exports = [
             let { text: phone } = await context.question('Введите ваш актуальный номер Qiwi-кошелька', { keyboard: cancelKeyboard });
 
             phone = phone.match(/\d+/g).join(''); // tel-formater(phone); || я в ахуе 
-            if(!phone || isNaN(phone)) return context.send('Для ввода актуального номера нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });            
+            if(!phone || isNaN(phone)) return context.send('Для ввода актуального номера нужно использовать только числа.', { keyboard: privateKeyboard(thisUser) });
 
-            // await User.updateItem(thisUser.uid, { phone });
-            // await context.send('Номер успешно обновлен.');
-
-            await Promise.all([
+            return await Promise.all([
                 User.updateItem(thisUser.uid, { qiwi: Number(phone) }),
                 context.send('Номер успешно обновлен.', { keyboard: privateKeyboard(thisUser) }) // а вдруг нет?
             ]);
@@ -164,7 +161,7 @@ module.exports = [
             ]);
             const amountPayments = payments.map(payment => payment.amount);
 
-            await context.send(
+            return await context.send(
                 'Актуальный курс:\n' +
                 `➖ Покупка: ${exchangeRates.course.buy}\n` +
                 `➖ Продажа: ${exchangeRates.course.sell}\n\n` +
@@ -188,7 +185,7 @@ module.exports = [
         async execute(context, { thisUser }) {
             if(!thisUser.isAdmin) return;
 
-            await context.send('Панель:', { 
+            return await context.send('Панель:', { 
                 keyboard: adminKeyboard
             })
         }
@@ -214,7 +211,7 @@ module.exports = [
                 if(isNaN(amount)) return context.send('Сумма должна быть числом', { keyboard: adminKeyboard });
 
                 exchangeRates.edit(args[2], amount);
-                await context.send(
+                return await context.send(
                     'Курс успешно изменен',
                     { keyboard: adminKeyboard }
                 )
@@ -263,7 +260,7 @@ module.exports = [
 
                     const endTime = (new Date().getTime() - startTime) / 1000;
 
-                    await context.send(
+                    return await context.send(
                         'Рассылка обконченая с ног до головы\n\n' +
                         `Потрачено времени: ${formate.seconds(endTime)}\n` + 
                         `Отправлено сообщений: ${sentToUsers}`
@@ -273,7 +270,7 @@ module.exports = [
 
             else if(args[1] === 'debug') {
                 const getTextDebug = await debug();
-                await context.send(getTextDebug)
+                return await context.send(getTextDebug)
             }
         }
     }
